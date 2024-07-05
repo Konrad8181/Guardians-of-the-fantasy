@@ -4,25 +4,80 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
-    public float moveSpeed = 5f; // Adjust this value to change the player's movement speed
-
-    private Rigidbody2D rb;
-
-    void Start()
+    public static PlayerController instance;
+    private void Awake()
     {
-        rb = GetComponent<Rigidbody2D>(); // Get the Rigidbody2D component attached to the player GameObject
+        instance = this;
     }
 
+    public float moveSpeed;
+
+    public Animator anim;
+
+    public float pickupRange = 1.5f;
+
+    //public Weapon activeWeapon;
+
+    public List<Weapon> unassignedWeapons, assignedWeapons;
+
+    public int maxWeapons = 3;
+
+    [HideInInspector]
+    public List<Weapon> fullyLevelledWeapons = new List<Weapon>();
+
+    // Start is called before the first frame update
+    void Start()
+    {
+        if (assignedWeapons.Count == 0)
+        {
+            AddWeapon(Random.Range(0, unassignedWeapons.Count));
+        }
+
+        moveSpeed = PlayerStatController.instance.moveSpeed[0].value;
+        pickupRange = PlayerStatController.instance.pickupRange[0].value;
+        maxWeapons = Mathf.RoundToInt( PlayerStatController.instance.maxWeapons[0].value);
+    }
+
+    // Update is called once per frame
     void Update()
     {
-        // Get input from the player
-        float moveHorizontal = Input.GetAxisRaw("Horizontal");
-        float moveVertical = Input.GetAxisRaw("Vertical");
+        Vector3 moveInput = new Vector3(0f, 0f, 0f);
+        moveInput.x = Input.GetAxisRaw("Horizontal");
+        moveInput.y = Input.GetAxisRaw("Vertical");
 
-        // Calculate the movement direction
-        Vector2 movement = new Vector2(moveHorizontal, moveVertical).normalized;
+        //Debug.Log(moveInput);
 
-        // Move the player
-        rb.velocity = movement * moveSpeed;
+        moveInput.Normalize();
+
+        //Debug.Log(moveInput);
+
+        transform.position += moveInput * moveSpeed * Time.deltaTime;
+
+        if(moveInput != Vector3.zero)
+        {
+            anim.SetBool("isMoving", true);
+        } else
+        {
+            anim.SetBool("isMoving", false);
+        }
+    }
+
+    public void AddWeapon(int weaponNumber)
+    {
+        if(weaponNumber < unassignedWeapons.Count)
+        {
+            assignedWeapons.Add(unassignedWeapons[weaponNumber]);
+
+            unassignedWeapons[weaponNumber].gameObject.SetActive(true);
+            unassignedWeapons.RemoveAt(weaponNumber);
+        }
+    }
+
+    public void AddWeapon(Weapon weaponToAdd)
+    {
+        weaponToAdd.gameObject.SetActive(true);
+
+        assignedWeapons.Add(weaponToAdd);
+        unassignedWeapons.Remove(weaponToAdd);
     }
 }
